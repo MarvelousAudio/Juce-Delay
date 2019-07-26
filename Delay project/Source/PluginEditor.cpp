@@ -20,6 +20,9 @@ DelayProjectAudioProcessorEditor::DelayProjectAudioProcessorEditor (DelayProject
     setSize (400, 300);
     
     auto& params = processor.getParameters();
+//===============================================================================
+    //Dry/wet knob!
+    
     AudioParameterFloat* dryWetParameter = (AudioParameterFloat*)params.getUnchecked(0);
     
     mDryWetSlider.setBounds(0, 0, 100, 100);
@@ -33,6 +36,24 @@ DelayProjectAudioProcessorEditor::DelayProjectAudioProcessorEditor (DelayProject
     
     mDryWetSlider.onDragStart = [dryWetParameter]{dryWetParameter->beginChangeGesture();};
     mDryWetSlider.onDragEnd = [dryWetParameter]{dryWetParameter->endChangeGesture();};
+    
+//======================================================================================================
+    //Feedback Knob!
+    
+    AudioParameterFloat* feedbackParameter = ((AudioParameterFloat*)params.getUnchecked(1));
+    mFeedbackSlider.setBounds(100, 0, 100, 100);
+    mFeedbackSlider.setSliderStyle(Slider::SliderStyle::RotaryVerticalDrag);
+    mFeedbackSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::NoTextBox, true, 0, 0);
+    mFeedbackSlider.setRange(feedbackParameter->range.start, feedbackParameter->range.end);
+    mFeedbackSlider.setValue(*feedbackParameter);
+    addAndMakeVisible(mFeedbackSlider);
+    
+    mFeedbackSlider.onValueChange = [this, dryWetParameter] {*dryWetParameter = mDryWetSlider.getValue();};
+    
+    mFeedbackSlider.onDragStart = [feedbackParameter]{feedbackParameter->beginChangeGesture();};
+    mFeedbackSlider.onDragEnd = [feedbackParameter]{feedbackParameter->endChangeGesture();};
+    
+    
 }
 
 DelayProjectAudioProcessorEditor::~DelayProjectAudioProcessorEditor()
