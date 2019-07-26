@@ -68,4 +68,6 @@ private:
     float mDelayReadHead;
     float mFeedbackRight;
     float mFeedbackLeft;
+    float mDryWet;
+    
 };

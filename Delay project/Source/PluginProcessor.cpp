@@ -32,6 +32,7 @@ DelayProjectAudioProcessor::DelayProjectAudioProcessor()
     mDelayReadHead = 0;
     mFeedbackLeft = 0;
     mFeedbackRight = 0;
+    mDryWet = 0.5;
     
 }
 
@@ -198,9 +199,10 @@ void DelayProjectAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiB
 //
         mFeedbackLeft = delay_sample_left * 0.8;
         mFeedbackRight = delay_sample_right * 0.8;
+        
         mCircularBufferWriteHead++;
-        buffer.addSample(0, i, delay_sample_left);
-        buffer.addSample(1, i, delay_sample_right);
+        buffer.setSample(0, i, buffer.getSample(0, i) * mDryWet + delay_sample_left * (1 - mDryWet));
+        buffer.setSample(1, i, buffer.getSample(1, i) * mDryWet + delay_sample_right * (1 - mDryWet));
         
         
         if (mCircularBufferLength <= mCircularBufferWriteHead){
