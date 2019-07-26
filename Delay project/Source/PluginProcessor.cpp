@@ -140,7 +140,7 @@ void DelayProjectAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
-    mDelayTimeInSamples = getSampleRate() * *mDelayTimeParameter;
+    mDelayTimeInSamples = sampleRate * *mDelayTimeParameter;
     
     mCircularBufferLength = sampleRate * MAX_DELAY_TIME;
     if (mCircularBufferLeft == nullptr){
@@ -182,7 +182,8 @@ bool DelayProjectAudioProcessor::isBusesLayoutSupported (const BusesLayout& layo
   #endif
 }
 #endif
-
+//==================================================================================================
+//PROCESSING BLOCK!
 void DelayProjectAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midiMessages)
 {
     ScopedNoDenormals noDenormals;
@@ -197,7 +198,11 @@ void DelayProjectAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiB
     // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-
+    
+    
+    mDelayTimeInSamples = getSampleRate() * *mDelayTimeParameter; //Parameter for Delay Time!
+    
+    
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
     // Make sure to reset the state if your inner loop is processing
@@ -212,6 +217,7 @@ void DelayProjectAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiB
         mCircularBufferRight[mCircularBufferWriteHead] = rightChannel[i] + mFeedbackRight;
         
         mDelayReadHead = mCircularBufferWriteHead - mDelayTimeInSamples;
+       // mDelayReadHead = mCircularBufferWriteHead - *mDelayTimeParameter;
         
         if (mDelayReadHead < 0){
             mDelayReadHead += mCircularBufferLength;
