@@ -24,10 +24,20 @@ DelayProjectAudioProcessor::DelayProjectAudioProcessor()
                        )
 #endif
 {
+    mCircularBufferLeft = nullptr;
+    mCircularBufferRight = nullptr;
 }
 
 DelayProjectAudioProcessor::~DelayProjectAudioProcessor()
 {
+    if (mCircularBufferLeft != nullptr){
+       delete [] mCircularBufferLeft;
+        mCircularBufferLeft = nullptr;
+    }
+    if (mCircularBufferRight != nullptr){
+        delete [] mCircularBufferRight;
+        mCircularBufferRight = nullptr;
+    }
 }
 
 //==============================================================================
@@ -97,6 +107,12 @@ void DelayProjectAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+    if (mCircularBufferLeft == nullptr){
+        mCircularBufferLeft = new float[(int)(sampleRate * MAX_DELAY_TIME)];
+    }
+    if (mCircularBufferRight == nullptr){
+        mCircularBufferRight = new float[(int)(sampleRate * MAX_DELAY_TIME)];
+    }
 }
 
 void DelayProjectAudioProcessor::releaseResources()

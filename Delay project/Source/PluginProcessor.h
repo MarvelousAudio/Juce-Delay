@@ -12,6 +12,8 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
+#define MAX_DELAY_TIME 2
+
 //==============================================================================
 /**
 */
@@ -58,4 +60,6 @@ public:
 private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DelayProjectAudioProcessor)
+    float* mCircularBufferLeft;
+    float* mCircularBufferRight;
 };
