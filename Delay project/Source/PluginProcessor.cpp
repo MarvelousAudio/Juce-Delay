@@ -113,6 +113,7 @@ void DelayProjectAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
     mDelayTimeInSamples = sampleRate * 0.5;
+    
     mCircularBufferLength = sampleRate * MAX_DELAY_TIME;
     if (mCircularBufferLeft == nullptr){
         mCircularBufferLeft = new float[(int)(mCircularBufferLength)];
@@ -183,9 +184,11 @@ void DelayProjectAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiB
         mCircularBufferRight[mCircularBufferWriteHead] = rightChannel[i];
         
         mDelayReadHead = mCircularBufferWriteHead - mDelayTimeInSamples;
-        
-        buffer.setSample(0, i, mCircularBufferLeft[(int)mDelayReadHead]);
-        buffer.setSample(1, i, mCircularBufferRight[(int)mDelayReadHead]);
+        if (mDelayReadHead < 0){
+            mDelayReadHead += mCircularBufferLength;
+        }
+        buffer.addSample(0, i, mCircularBufferLeft[(int)mDelayReadHead]);
+        buffer.addSample(1, i, mCircularBufferRight[(int)mDelayReadHead]);
         
         mCircularBufferWriteHead++;
         
