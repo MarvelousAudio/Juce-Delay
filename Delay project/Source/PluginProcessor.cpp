@@ -226,8 +226,8 @@ void DelayProjectAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiB
         mFeedbackRight = delay_sample_right * *mFeedbackParameter;
         
         mCircularBufferWriteHead++;
-        buffer.setSample(0, i, buffer.getSample(0, i) * *mDryWetParameter + delay_sample_left * (1 - *mDryWetParameter));
-        buffer.setSample(1, i, buffer.getSample(1, i) * *mDryWetParameter + delay_sample_right * (1 - *mDryWetParameter));
+        buffer.setSample(0, i, buffer.getSample(0, i) * (1 - *mDryWetParameter) + delay_sample_left * *mDryWetParameter );
+        buffer.setSample(1, i, buffer.getSample(1, i) * (1 - *mDryWetParameter) + delay_sample_left * *mDryWetParameter );
         
         
         if (mCircularBufferLength <= mCircularBufferWriteHead){
