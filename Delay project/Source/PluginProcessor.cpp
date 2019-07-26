@@ -24,10 +24,25 @@ DelayProjectAudioProcessor::DelayProjectAudioProcessor()
                        )
 #endif
 {
+    mCircularBufferLeft = nullptr;
+    mCircularBufferRight = nullptr;
+    mCircularBufferWriteHead = 0;
+    mCircularBufferLength = 0;
+    mDelayTimeInSamples = 0;
+    mDelayReadHead = 0;
+    
 }
 
 DelayProjectAudioProcessor::~DelayProjectAudioProcessor()
 {
+    if (mCircularBufferLeft != nullptr){
+       delete [] mCircularBufferLeft;
+        mCircularBufferLeft = nullptr;
+    }
+    if (mCircularBufferRight != nullptr){
+        delete [] mCircularBufferRight;
+        mCircularBufferRight = nullptr;
+    }
 }
 
 //==============================================================================
@@ -97,6 +112,17 @@ void DelayProjectAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+    mDelayTimeInSamples = sampleRate * 0.5;
+    
+    mCircularBufferLength = sampleRate * MAX_DELAY_TIME;
+    if (mCircularBufferLeft == nullptr){
+        mCircularBufferLeft = new float[(int)(mCircularBufferLength)];
+    }
+    if (mCircularBufferRight == nullptr){
+        mCircularBufferRight = new float[(int)(mCircularBufferLength)];
+    }
+    mCircularBufferWriteHead = 0;
+    
 }
 
 void DelayProjectAudioProcessor::releaseResources()
@@ -150,10 +176,25 @@ void DelayProjectAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiB
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    float* leftChannel = buffer.getWritePointer(0);
+    float* rightChannel = buffer.getWritePointer(1);
+    for (int i = 0; i < buffer.getNumSamples(); i++)
     {
-        auto* channelData = buffer.getWritePointer (channel);
-
+        mCircularBufferLeft[mCircularBufferWriteHead] = leftChannel[i];
+        mCircularBufferRight[mCircularBufferWriteHead] = rightChannel[i];
+        
+        mDelayReadHead = mCircularBufferWriteHead - mDelayTimeInSamples;
+        if (mDelayReadHead < 0){
+            mDelayReadHead += mCircularBufferLength;
+        }
+        buffer.addSample(0, i, mCircularBufferLeft[(int)mDelayReadHead]);
+        buffer.addSample(1, i, mCircularBufferRight[(int)mDelayReadHead]);
+        
+        mCircularBufferWriteHead++;
+        
+        if (mCircularBufferLength <= mCircularBufferWriteHead){
+            mCircularBufferWriteHead = 0;
+        }
         // ..do something to the data...
     }
 }
