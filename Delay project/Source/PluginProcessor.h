@@ -66,4 +66,6 @@ private:
     int mCircularBufferLength;
     float mDelayTimeInSamples;
     float mDelayReadHead;
+    float mFeedbackRight;
+    float mFeedbackLeft;
 };
