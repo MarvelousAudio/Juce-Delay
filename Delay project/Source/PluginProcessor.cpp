@@ -24,6 +24,31 @@ DelayProjectAudioProcessor::DelayProjectAudioProcessor()
                        )
 #endif
 {
+    //======================================================================================================
+    //PARAMETERS
+    
+    addParameter(mDryWetParameter = new AudioParameterFloat("drywet",
+                                                  "Dry Wet",
+                                                   0.0,
+                                                   1.0,
+                                                  0.5));
+    
+    
+    addParameter(mFeedbackParameter = new AudioParameterFloat("feedback",
+                                                              "Feedback",
+                                                              0,
+                                                              0.98,
+                                                              0.5));
+    addParameter(mDelayTimeParameter = new AudioParameterFloat("delaytime",
+                                                             "Delay TIme",
+                                                             0.01,
+                                                             MAX_DELAY_TIME,
+                                                             0.5));
+    
+   
+   //======================================================================================================
+    
+    
     mCircularBufferLeft = nullptr;
     mCircularBufferRight = nullptr;
     mCircularBufferWriteHead = 0;
@@ -32,7 +57,7 @@ DelayProjectAudioProcessor::DelayProjectAudioProcessor()
     mDelayReadHead = 0;
     mFeedbackLeft = 0;
     mFeedbackRight = 0;
-    mDryWet = 0.5;
+   // mDryWet = 0.5; dont need any more b/c we made a parameter
     
 }
 
@@ -115,7 +140,7 @@ void DelayProjectAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
-    mDelayTimeInSamples = sampleRate * 0.5;
+    mDelayTimeInSamples = getSampleRate() * *mDelayTimeParameter;
     
     mCircularBufferLength = sampleRate * MAX_DELAY_TIME;
     if (mCircularBufferLeft == nullptr){
@@ -197,12 +222,12 @@ void DelayProjectAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiB
 //        buffer.addSample(0, i, mCircularBufferLeft[(int)mDelayReadHead]);
 //        buffer.addSample(1, i, mCircularBufferRight[(int)mDelayReadHead]);
 //
-        mFeedbackLeft = delay_sample_left * 0.8;
-        mFeedbackRight = delay_sample_right * 0.8;
+        mFeedbackLeft = delay_sample_left * *mFeedbackParameter;
+        mFeedbackRight = delay_sample_right * *mFeedbackParameter;
         
         mCircularBufferWriteHead++;
-        buffer.setSample(0, i, buffer.getSample(0, i) * mDryWet + delay_sample_left * (1 - mDryWet));
-        buffer.setSample(1, i, buffer.getSample(1, i) * mDryWet + delay_sample_right * (1 - mDryWet));
+        buffer.setSample(0, i, buffer.getSample(0, i) * *mDryWetParameter + delay_sample_left * (1 - *mDryWetParameter));
+        buffer.setSample(1, i, buffer.getSample(1, i) * *mDryWetParameter + delay_sample_right * (1 - *mDryWetParameter));
         
         
         if (mCircularBufferLength <= mCircularBufferWriteHead){
