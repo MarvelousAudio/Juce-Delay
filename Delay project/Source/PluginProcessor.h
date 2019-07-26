@@ -64,4 +64,6 @@ private:
     float* mCircularBufferRight;
     int mCircularBufferWriteHead;
     int mCircularBufferLength;
+    float mDelayTimeInSamples;
+    float mDelayReadHead;
 };
