@@ -18,6 +18,7 @@
 /**
 */
 class DelayProjectAudioProcessor  : public AudioProcessor
+
 {
 public:
     //==============================================================================
@@ -56,14 +57,34 @@ public:
     //==============================================================================
     void getStateInformation (MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
+    
+    float lin_interp(float sample_x, float sample_x1, float inPhase);
 
 private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DelayProjectAudioProcessor)
-    float* mCircularBufferLeft;
-    float* mCircularBufferRight;
+    
+    
+
+    
+    AudioParameterFloat* mDryWetParameter;
+    AudioParameterFloat* mFeedbackParameter;
+    AudioParameterFloat* mDelayTimeParameter;
+    float mDelayTimeSmoothed;
+    
+    std::unique_ptr<float[]> mCircularBufferLeft;
+    std::unique_ptr<float[]> mCircularBufferRight;
+    
     int mCircularBufferWriteHead;
     int mCircularBufferLength;
+    
     float mDelayTimeInSamples;
     float mDelayReadHead;
+    
+    float mFeedbackRight;
+    float mFeedbackLeft;
+    
+    float mDryWet;
+    
+    
 };

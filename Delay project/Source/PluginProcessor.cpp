@@ -24,25 +24,54 @@ DelayProjectAudioProcessor::DelayProjectAudioProcessor()
                        )
 #endif
 {
+    //======================================================================================================
+    //PARAMETERS
+    
+    addParameter(mDryWetParameter = new AudioParameterFloat("drywet",
+                                                  "Dry Wet",
+                                                   0.0,
+                                                   1.0,
+                                                  0.5));
+    
+    
+    addParameter(mFeedbackParameter = new AudioParameterFloat("feedback",
+                                                              "Feedback",
+                                                              0,
+                                                              0.98,
+                                                              0.5));
+    addParameter(mDelayTimeParameter = new AudioParameterFloat("delaytime",
+                                                             "Delay TIme",
+                                                             0.01,
+                                                             MAX_DELAY_TIME,
+                                                             0.5));
+    
+   
+   //======================================================================================================
+    
+    
     mCircularBufferLeft = nullptr;
     mCircularBufferRight = nullptr;
     mCircularBufferWriteHead = 0;
     mCircularBufferLength = 0;
     mDelayTimeInSamples = 0;
     mDelayReadHead = 0;
+    mFeedbackLeft = 0;
+    mFeedbackRight = 0;
+    mDelayTimeSmoothed = 0;
+   // mDryWet = 0.5; dont need any more b/c we made a parameter
     
 }
 
 DelayProjectAudioProcessor::~DelayProjectAudioProcessor()
 {
-    if (mCircularBufferLeft != nullptr){
-       delete [] mCircularBufferLeft;
-        mCircularBufferLeft = nullptr;
-    }
-    if (mCircularBufferRight != nullptr){
-        delete [] mCircularBufferRight;
-        mCircularBufferRight = nullptr;
-    }
+//    if (mCircularBufferLeft != nullptr){
+//       delete [] mCircularBufferLeft;
+//        mCircularBufferLeft = nullptr;
+//    }
+//    if (mCircularBufferRight != nullptr){
+//        delete [] mCircularBufferRight;
+//        mCircularBufferRight = nullptr;
+//    }
 }
 
 //==============================================================================
@@ -112,16 +141,23 @@ void DelayProjectAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
-    mDelayTimeInSamples = sampleRate * 0.5;
+    mDelayTimeInSamples = sampleRate * *mDelayTimeParameter;
     
     mCircularBufferLength = sampleRate * MAX_DELAY_TIME;
-    if (mCircularBufferLeft == nullptr){
-        mCircularBufferLeft = new float[(int)(mCircularBufferLength)];
-    }
-    if (mCircularBufferRight == nullptr){
-        mCircularBufferRight = new float[(int)(mCircularBufferLength)];
-    }
+//    if (mCircularBufferLeft == nullptr){
+//        mCircularBufferLeft = new float[(int)(mCircularBufferLength)];
+//    }
+    
+    
+//    if (mCircularBufferRight == nullptr){
+//        mCircularBufferRight = new float[(int)(mCircularBufferLength)];
+//    }
+    
+    mCircularBufferLeft.reset(new float[mCircularBufferLength]);
+    mCircularBufferRight.reset(new float[mCircularBufferLength]);
+    
     mCircularBufferWriteHead = 0;
+    mDelayTimeSmoothed = *mDelayTimeParameter;
     
 }
 
@@ -154,7 +190,8 @@ bool DelayProjectAudioProcessor::isBusesLayoutSupported (const BusesLayout& layo
   #endif
 }
 #endif
-
+//==================================================================================================
+//PROCESSING BLOCK!
 void DelayProjectAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midiMessages)
 {
     ScopedNoDenormals noDenormals;
@@ -169,7 +206,11 @@ void DelayProjectAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiB
     // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-
+    
+    
+    
+    
+    
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
     // Make sure to reset the state if your inner loop is processing
@@ -180,18 +221,63 @@ void DelayProjectAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiB
     float* rightChannel = buffer.getWritePointer(1);
     for (int i = 0; i < buffer.getNumSamples(); i++)
     {
-        mCircularBufferLeft[mCircularBufferWriteHead] = leftChannel[i];
-        mCircularBufferRight[mCircularBufferWriteHead] = rightChannel[i];
+        
+        mDelayTimeSmoothed = mDelayTimeSmoothed - 0.001 * (mDelayTimeSmoothed - *mDelayTimeParameter);
+        
+        
+        mDelayTimeInSamples = getSampleRate() * mDelayTimeSmoothed; //Parameter for Delay Time!
+        
+        
+        mCircularBufferLeft[mCircularBufferWriteHead] = leftChannel[i] + mFeedbackLeft;
+        mCircularBufferRight[mCircularBufferWriteHead] = rightChannel[i] + mFeedbackRight;
         
         mDelayReadHead = mCircularBufferWriteHead - mDelayTimeInSamples;
-        if (mDelayReadHead < 0){
-            mDelayReadHead += mCircularBufferLength;
+       
+//=========================================================================================================
+        if (mDelayReadHead < 0){                        //check if readHead is less than 0 if so it index is out
+            mDelayReadHead += mCircularBufferLength;    // of bounds and it is corrected!
         }
-        buffer.addSample(0, i, mCircularBufferLeft[(int)mDelayReadHead]);
-        buffer.addSample(1, i, mCircularBufferRight[(int)mDelayReadHead]);
+//==========================================================================================================
         
-        mCircularBufferWriteHead++;
+//        float delay_sample_left = mCircularBufferLeft[(int)mDelayReadHead];
+//        float delay_sample_right = mCircularBufferRight[(int)mDelayReadHead];
         
+//        buffer.addSample(0, i, mCircularBufferLeft[(int)mDelayReadHead]);
+//        buffer.addSample(1, i, mCircularBufferRight[(int)mDelayReadHead]);
+//
+//============================================================================================================
+        /*
+         
+         this block of code is for delay time and we are interpulating the values!
+         
+         */
+        int readHead_x = (int)mDelayReadHead;
+        int readHead_x1 =  readHead_x + 1;
+        
+        float readHeadFloat = mDelayReadHead - readHead_x;
+        
+        
+        if (readHead_x1 >= mCircularBufferLength){ //checks if x1 is equal to or greater the buffer lenght
+            readHead_x1 -= mCircularBufferLength; //if true x1 is decreased index.
+        }
+        
+        float delay_sample_left = lin_interp(mCircularBufferLeft[readHead_x], mCircularBufferLeft[readHead_x1], readHeadFloat);
+        float delay_sample_right = lin_interp(mCircularBufferRight[readHead_x], mCircularBufferRight[readHead_x1], readHeadFloat);
+        
+//================================================================================================================
+        //FEEDBACK KNOB!
+        mFeedbackLeft = delay_sample_left * *mFeedbackParameter;
+        mFeedbackRight = delay_sample_right * *mFeedbackParameter;
+//=================================================================================================================
+        mCircularBufferWriteHead++; //moves index of circular buffer
+        
+        
+//==================================================================================================================
+        //DRY/WET KNOB!
+        buffer.setSample(0, i, buffer.getSample(0, i) * (1 - *mDryWetParameter) + delay_sample_left * *mDryWetParameter );
+        buffer.setSample(1, i, buffer.getSample(1, i) * (1 - *mDryWetParameter) + delay_sample_left * *mDryWetParameter );
+        
+        //checks if writehead is greater if so it initializes writehead back to 0.
         if (mCircularBufferLength <= mCircularBufferWriteHead){
             mCircularBufferWriteHead = 0;
         }
@@ -224,9 +310,16 @@ void DelayProjectAudioProcessor::setStateInformation (const void* data, int size
     // whose contents will have been created by the getStateInformation() call.
 }
 
+
 //==============================================================================
 // This creates new instances of the plugin..
 AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new DelayProjectAudioProcessor();
+}
+
+float DelayProjectAudioProcessor::lin_interp(float sample_x, float sample_x1, float inPhase)
+{
+    return (1 - inPhase) * sample_x + inPhase * sample_x1;
+
 }
