@@ -80,8 +80,10 @@ private:
     
     float mDelayTimeInSamples;
     float mDelayReadHead;
+    
     float mFeedbackRight;
     float mFeedbackLeft;
+    
     float mDryWet;
     
     
