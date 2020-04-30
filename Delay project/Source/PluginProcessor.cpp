@@ -256,10 +256,11 @@ void DelayProjectAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiB
         
         float readHeadFloat = mDelayReadHead - readHead_x;
         
-        
         if (readHead_x1 >= mCircularBufferLength){ //checks if x1 is equal to or greater the buffer lenght
             readHead_x1 -= mCircularBufferLength; //if true x1 is decreased index.
         }
+        
+        
         
         float delay_sample_left = lin_interp(mCircularBufferLeft[readHead_x], mCircularBufferLeft[readHead_x1], readHeadFloat);
         float delay_sample_right = lin_interp(mCircularBufferRight[readHead_x], mCircularBufferRight[readHead_x1], readHeadFloat);
@@ -275,7 +276,7 @@ void DelayProjectAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiB
 //==================================================================================================================
         //DRY/WET KNOB!
         buffer.setSample(0, i, buffer.getSample(0, i) * (1 - *mDryWetParameter) + delay_sample_left * *mDryWetParameter );
-        buffer.setSample(1, i, buffer.getSample(1, i) * (1 - *mDryWetParameter) + delay_sample_left * *mDryWetParameter );
+        buffer.setSample(1, i, buffer.getSample(1, i) * (1 - *mDryWetParameter) + delay_sample_right * *mDryWetParameter );
         
         //checks if writehead is greater if so it initializes writehead back to 0.
         if (mCircularBufferLength <= mCircularBufferWriteHead){
